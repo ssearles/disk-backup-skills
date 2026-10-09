@@ -79,6 +79,12 @@ menu, which is why it is easy to miss.
 You need to do this **twice** when restoring in either direction — once to
 shrink before the restore, once to grow after it.
 
+**How small is safe:** both Rescuezilla and GParted warn that not every resize
+will work, which is true and unhelpful on its own. The rule that actually
+worked: **stay above the size of the coloured band** that the installed
+partition occupies in the GParted disk graphic. Never drag the partition edge
+below that band. Anything larger than it resized without trouble.
+
 Full procedure in
 [`skills/rescuezilla-backup-workflow/reference.md`](skills/rescuezilla-backup-workflow/reference.md).
 

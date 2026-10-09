@@ -180,7 +180,31 @@ Growing is the safer of the two operations — nothing is moved off the end of t
 filesystem, so there is no data to lose. Doing it after the restore rather than
 before means you never shrink a partition you are not certain about.
 
-### Shrink the container, not necessarily the filesystem
+### How small is safe
+
+`[PROVEN]` — both Rescuezilla and GParted display a disclaimer that not all
+resizes will succeed. The warning is accurate and gives no usable rule.
+
+The rule that worked in practice: **stay above the size of the coloured band**
+representing the installed partition in the GParted disk graphic. Dragging the
+partition edge below that band is what turns a routine resize into a failed
+one; staying above it worked every time.
+
+```
+GParted disk graphic
+
+  [====== LUKS/btrfs ======][------ free ------]
+  ^^^^^ the coloured band    ^^^^^ do not shrink past this
+
+  safe:     [=====================]
+  too small: [=====]            <-- below the band, fails
+```
+
+The band is a proxy for the filesystem's actual minimum. Staying above it
+leaves GParted enough room to move the end of the filesystem without running
+out, which is what the resize operation is actually trying to do.
+
+### Shrinking the container, not necessarily the filesystem
 
 `[INFERRED]` — it should be enough to resize the **LUKS container** and leave
 the btrfs filesystem inside it at its current size. btrfs will simply stop using
@@ -291,6 +315,7 @@ booting that laptop and running Rescuezilla again.
 | Blank completion screen that won't close | Modal dialog awaiting Close |
 | Rescuezilla refuses to restore | Image partition larger than the destination disk |
 | GParted won't resize the root partition | LUKS container still locked — use its gear icon |
+| Resize fails despite unlocking | Edge dragged below the partition's coloured band |
 
 **Rule that would have prevented most of these:** never put a timeout on a
 command the user must not interrupt. Background it with `nohup` and a log.
