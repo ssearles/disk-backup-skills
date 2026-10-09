@@ -4,17 +4,20 @@ description: >
   De-duplicate a Linux machine that was created from a disk image — Rescuezilla,
   Clonezilla, dd, or a bare-metal restore — and sanitize the identity it
   inherited from the source machine: the machine-id, the hostname, and the
-  system journal. Covers diagnosing a cloned machine, regenerating a duplicate
+  system journal. Covers telling a clone apart from a source machine and from a
+  fresh install, diagnosing a cloned machine, regenerating a duplicate
   machine-id, correcting a hostname that names the wrong laptop, clearing
   inherited logs, and rolling the fix across a fleet of restored machines.
   Triggers: cloned machine identity, duplicate machine-id, machine id collision,
   same hostname on two machines, wrong hostname after restore, disk image clone,
-  rescuetzilla clone feature, clonezilla restore, restore image to new laptop,
-  sanitize restored system, inherited logs from another machine, DHCP collision
-  after clone, machine-id duplicate on network, linux host identity after
-  imaging, fleet imaging cleanup. Excludes: Windows and macOS product keys and
-  activation, BIOS/UEFI firmware settings, disk partitioning and imaging
-  mechanics, ZFS/Btrfs pool repair, and Kubernetes node identity.
+  is this machine a clone, should I run this on the source machine, fresh install
+  vs clone, rescuetzilla clone feature, clonezilla restore, restore image to new
+  laptop, installed from usb stick do I need this, sanitize restored system,
+  inherited logs from another machine, DHCP collision after clone, machine-id
+  duplicate on network, linux host identity after imaging, fleet imaging cleanup.
+  Excludes: Windows and macOS product keys and activation, BIOS/UEFI firmware
+  settings, disk partitioning and imaging mechanics, ZFS/Btrfs pool repair, and
+  Kubernetes node identity.
 ---
 
 # Cloned Machine Identity
@@ -38,6 +41,49 @@ machine-id and eight days of its logs. DMI reported the new laptop correctly
 boot process checks them.
 
 The giveaway is that the hostname describes hardware that is not there.
+
+## Before you fix anything: which kind of machine is this?
+
+**Get this wrong and you will damage a healthy machine.** The fix is destructive
+to hostname and logs, so establishing the case first is not optional.
+
+There are three kinds of machine, and only one needs the fix:
+
+| How it was made | Inherits identity? | Action |
+|---|---|---|
+| **Source** — the machine the image was taken from | No, its ID is original | **Leave it alone** |
+| **Clone** — restored from an image of another machine | Yes | **Run the fix** |
+| **Fresh install** — installed from USB/ISO | No, nothing to copy | **Leave it alone** |
+
+A fresh install from a flash drive or ISO is **not** a clone. It generates a
+new machine-id at first boot and starts with an empty journal, so it has no
+inherited identity and nothing to fix. Running the fix script on one renames a
+correctly-named machine and deletes its real logs.
+
+Distinguishing them is cheap and read-only:
+
+```bash
+hostname                                    # current name
+cat /sys/class/dmi/id/sys_vendor            # what hardware really is
+journalctl --no-pager -o json | head -200 \
+  | python3 -c "import sys,json; print({json.loads(l).get('_HOSTNAME') for l in sys.stdin if l.strip()})"
+```
+
+Read the results as follows:
+
+- **Hostname names hardware that isn't present** → clone. The source machine's
+  name survived the restore.
+- **Journal's oldest entries carry a different hostname than `hostname`** →
+  clone, and it names the machine it came from.
+- **Whole journal is this machine's own name** → fresh install or already
+  fixed. Nothing inherited, nothing to do.
+- **Hostname matches the hardware** → probably a source or fresh install.
+
+The source machine is the trap. It carries the ID that everything else copied,
+so it looks like the most affected machine in the fleet. It is the one machine
+that needs nothing. When rolling this out across several machines, the ID that
+appears on the *most* of them is the source's — and it is the one to leave
+alone.
 
 ## What a restore actually inherits
 
@@ -172,7 +218,19 @@ but images configured with a `127.0.1.1 <hostname>` line need that updated too.
 
 When several machines come from the same source image, the identity problem
 repeats per machine and the collisions compound — N machines sharing one ID on
-one network. Record the IDs as you go so a future duplicate is detectable:
+one network. `survey-fleet-identity.sh`, in this skill's directory, reports every
+host's hostname, machine-id, hardware, and inherited journal read-only, and
+classifies each as source, clone, or unique. Run it before fixing anything:
+
+```bash
+./survey-fleet-identity.sh laptop-1 laptop-2 laptop-3
+```
+
+It makes no changes and needs no root, so it is safe to point at a fleet that
+includes machines needing no fix. It names the source machine explicitly and
+flags every machine that duplicates it.
+
+Record the IDs as you go so a future duplicate is detectable:
 
 ```bash
 for host in laptop-1 laptop-2 laptop-3; do

@@ -42,12 +42,16 @@ Running multi-machine disk-image backups.
 
 The cleanup a machine needs after being restored from a disk image.
 
+- Telling a **clone** apart from the **source** machine and from a **fresh
+  install** — only the first needs fixing, and the source is the one that looks
+  most affected
 - Detecting a clone from a stale hostname and inherited journal
 - Regenerating a duplicate machine-id
 - Fixing a hostname that names the wrong laptop
 - Clearing logs carried over from the source machine
 - SSH host key checks — when there is nothing to regenerate
-- Rolling the fix across a fleet and proving the IDs are distinct
+- Rolling the fix across a fleet and proving the IDs are distinct, with a
+  read-only survey script that classifies every machine first
 
 ## Why these exist
 
