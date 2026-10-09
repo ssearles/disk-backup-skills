@@ -54,6 +54,34 @@ to traps that aren't documented anywhere:
 
 Each is documented with the evidence that identified it.
 
+## Restoring onto a differently sized disk
+
+An image taken from one laptop will not restore onto a laptop with a different
+disk size without a resize first. GParted is on the Rescuezilla flash drive, so
+no extra download is needed.
+
+| Image vs target | What happens |
+|---|---|
+| Image **larger** | Rescuezilla refuses to restore — shrink it first |
+| Image **smaller** | Restores fine, but the partition is left undersized — grow it after |
+
+**The passphrase is the Omarchy login password from the machine the image came
+from.** Not a separate disk password, not a LUKS-only password — the same
+password you use to log in.
+
+This was found and tested by hand, on a real restore, after it looked like
+GParted had simply hung. It does not hang: Omarchy's root partition is
+LUKS-encrypted, and GParted will not resize an encrypted container until you
+unlock it. Select the encrypted partition, click its **gear (key) icon**, and
+enter that login password. The icon sits on the partition row rather than in a
+menu, which is why it is easy to miss.
+
+You need to do this **twice** when restoring in either direction — once to
+shrink before the restore, once to grow after it.
+
+Full procedure in
+[`skills/rescuezilla-backup-workflow/reference.md`](skills/rescuezilla-backup-workflow/reference.md).
+
 ## Installation
 
 ```bash
