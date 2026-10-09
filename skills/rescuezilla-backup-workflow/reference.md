@@ -95,11 +95,15 @@ Restoring is the only operation that destroys a laptop. Walk this in order.
 5. Confirm the image FITS the destination
      - Rescuezilla refuses to restore an image
        larger than the target disk
-     - if it refuses, see "Shrinking an image to fit"
+     - if it refuses, see "Resizing partitions
+       when the disks differ in size"
 6. Restore
 7. Remove USB stick
 8. Reboot, confirm the laptop boots
-9. Sanitize inherited identity if it was a clone
+9. If the image was SMALLER than the disk,
+   grow the partition to fill it
+     - GParted, gear icon, same login password
+10. Sanitize inherited identity if it was a clone
      -> ssearles/cloned-machine-identity
 ```
 
@@ -107,14 +111,24 @@ Rescuezilla overwrites the entire destination disk. There is no undo.
 
 ---
 
-## Shrinking an image to fit
+## Resizing partitions when the disks differ in size
 
-`[PROVEN]` — required whenever the image was taken from a physically larger
-laptop than the one being restored to. Rescuezilla detects that the layout will
-not fit and refuses rather than truncating.
+`[PROVEN]` — required whenever the image was taken from a disk of a different
+size than the destination. Which direction you need to go depends on which disk
+is bigger, and the two cases are not symmetric.
+
+| Case | When | When to resize |
+|---|---|---|
+| Image **larger** than target | Restoring onto a physically smaller laptop | **Before** the restore — Rescuezilla refuses otherwise |
+| Image **smaller** than target | Restoring onto a larger laptop | **After** the restore — the partition just sits unused |
 
 GParted is included on the Rescuezilla flash drive, so no separate download is
 needed.
+
+```
+512 GB image -> 256 GB laptop   Rescuezilla REFUSES  -> shrink first
+256 GB image -> 512 GB laptop   restores fine       -> grow afterwards (optional)
+```
 
 ### Why GParted appears to hang
 
@@ -125,37 +139,65 @@ passphrase on its own — it waits for you to ask.
 The layout on a restored Omarchy machine looks like this:
 
 ```
-/dev/sda1   vfat        /boot          unencrypted
-/dev/sda2   crypto_LUKS  -> btrfs       encrypted   <-- the one to shrink
+/dev/sda1   vfat          /boot          unencrypted
+/dev/sda2   crypto_LUKS   -> btrfs       encrypted   <-- the one to resize
 ```
 
-### The procedure
+### The passphrase
 
-1. Boot the target laptop from the Rescuezilla USB
-2. Open **GParted** from the desktop
-3. Select the target disk, then select the **encrypted partition**
-4. Click its **gear (key) icon** and enter the passphrase
-5. The passphrase is **the Omarchy login password from the original machine** —
-   the user whose image this is, not a separate disk or encryption password
-6. Once unlocked, resize it down to fit the destination disk
-7. Apply, then return to Rescuezilla and start the restore
+Select the encrypted partition and click its **gear (key) icon**. The passphrase
+is **the Omarchy login password from the original machine** — the user whose
+image this is, not a separate disk or encryption password.
 
 The gear icon is easy to miss because it sits on the partition row rather than
 in a menu. If GParted will not let you resize a partition, the container is
 still locked — this is almost always why, and almost never a fault with the
 disk.
 
+### Shrinking, before the restore
+
+1. Boot the target laptop from the Rescuezilla USB
+2. Open **GParted** from the desktop
+3. Select the target disk, then select the **encrypted partition**
+4. Click its **gear (key) icon** and enter the passphrase
+5. Resize it down until the layout fits the destination disk
+6. Apply, then return to Rescuezilla and start the restore
+
+### Growing, after the restore
+
+Once Rescuezilla has finished and the machine boots, the partition is whatever
+size the image carried — smaller than the disk around it. Reopen GParted on the
+restored system and grow it to fill:
+
+1. Boot the restored Omarchy system normally
+2. Open **GParted**
+3. Select the internal disk and the **encrypted partition**
+4. **Gear (key) icon again**, same login password
+5. Drag the right edge out to the end of the disk
+6. Apply
+
+Growing is the safer of the two operations — nothing is moved off the end of the
+filesystem, so there is no data to lose. Doing it after the restore rather than
+before means you never shrink a partition you are not certain about.
+
 ### Shrink the container, not necessarily the filesystem
 
-`[INFERRED]` — it should be enough to shrink the **LUKS container** and leave
+`[INFERRED]` — it should be enough to resize the **LUKS container** and leave
 the btrfs filesystem inside it at its current size. btrfs will simply stop using
-the tail of the partition, and growing back later is easier than shrinking
-btrfs offline. Shrinking btrfs itself is possible but is a more delicate
-operation than shrinking the outer container, and is not necessary just to make
-an image fit.
+the tail of the partition, and growing back later is easier than shrinking btrfs
+offline. Shrinking btrfs itself is possible but is a more delicate operation
+than resizing the outer container, and is not necessary just to make an image
+fit.
 
 Confirm what GParted actually resized before leaving — the partition row should
-show a smaller device size after the operation completes.
+show a new device size after the operation completes.
+
+### After any restore: sanitize the identity
+
+If the restore was a **clone** of another machine rather than a fresh install,
+the machine carries the source machine's hostname, machine-id, and journal.
+That is a separate problem with its own fix — see
+[`cloned-machine-identity`](https://github.com/ssearles/cloned-machine-identity).
 
 ---
 

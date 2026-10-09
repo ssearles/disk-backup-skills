@@ -278,7 +278,14 @@ Image:  512 GB laptop  ->  Target:  256 GB laptop   => refuses to restore
                                                      => shrink in GParted first
 ```
 
-Full procedure in `reference.md` under "Shrinking an image to fit".
+The same unlock step is needed a second time in the opposite direction: after
+restoring a **smaller** image onto a larger disk, the partition is left smaller
+than the disk around it. Reopen GParted on the booted system, unlock with the
+same password, and grow it out to fill. Growing is the safe direction — nothing
+is moved off the end of the filesystem.
+
+Full procedure in `reference.md` under "Resizing partitions when the disks
+differ in size".
 
 ### "Disk not found" or destination not writable in Rescuezilla
 
