@@ -54,7 +54,7 @@ Each is documented with the evidence that identified it.
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/disk-backup-skills.git
+git clone https://github.com/ssearles/disk-backup-skills.git
 cp -r disk-backup-skills/skills/* ~/.agents/skills/
 ```
 
