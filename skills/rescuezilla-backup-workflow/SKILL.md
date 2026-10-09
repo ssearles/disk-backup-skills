@@ -257,6 +257,29 @@ model, size, and that no backup drive is selected as the destination.
 
 ## Troubleshooting
 
+### Rescuezilla refuses to restore — image larger than the target disk
+
+`[PROVEN]` — Rescuezilla will not restore an image whose partition layout does
+not fit the destination. This happens whenever the image was taken from a
+physically larger laptop than the one being restored to.
+
+The fix is to shrink the cloned partition so it fits, using GParted, which ships
+alongside Rescuezilla on the same flash drive. Shrink the image on the backup
+drive, then re-attempt the restore.
+
+**The part that throws you:** Omarchy's root partition is encrypted, so GParted
+cannot read or resize it until the container is unlocked. Select the encrypted
+partition and use its **gear (key) icon** to unlock it. The passphrase is **the
+Omarchy login password from the machine the image was taken from** — not a
+separate disk password.
+
+```
+Image:  512 GB laptop  ->  Target:  256 GB laptop   => refuses to restore
+                                                     => shrink in GParted first
+```
+
+Full procedure in `reference.md` under "Shrinking an image to fit".
+
 ### "Disk not found" or destination not writable in Rescuezilla
 
 - **exFAT on very old Rescuezilla builds** — check the version; older releases

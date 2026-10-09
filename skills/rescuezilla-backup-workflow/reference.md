@@ -92,12 +92,70 @@ Restoring is the only operation that destroys a laptop. Walk this in order.
      - NOT the backup drive
      - check model name and size twice
 4. Confirm no USB drive is selected as destination
-5. Restore
-6. Remove USB stick
-7. Reboot, confirm the laptop boots
+5. Confirm the image FITS the destination
+     - Rescuezilla refuses to restore an image
+       larger than the target disk
+     - if it refuses, see "Shrinking an image to fit"
+6. Restore
+7. Remove USB stick
+8. Reboot, confirm the laptop boots
+9. Sanitize inherited identity if it was a clone
+     -> ssearles/cloned-machine-identity
 ```
 
 Rescuezilla overwrites the entire destination disk. There is no undo.
+
+---
+
+## Shrinking an image to fit
+
+`[PROVEN]` — required whenever the image was taken from a physically larger
+laptop than the one being restored to. Rescuezilla detects that the layout will
+not fit and refuses rather than truncating.
+
+GParted is included on the Rescuezilla flash drive, so no separate download is
+needed.
+
+### Why GParted appears to hang
+
+Omarchy encrypts the root partition with LUKS. GParted cannot read or resize an
+encrypted container until it is unlocked, and it does not prompt for the
+passphrase on its own — it waits for you to ask.
+
+The layout on a restored Omarchy machine looks like this:
+
+```
+/dev/sda1   vfat        /boot          unencrypted
+/dev/sda2   crypto_LUKS  -> btrfs       encrypted   <-- the one to shrink
+```
+
+### The procedure
+
+1. Boot the target laptop from the Rescuezilla USB
+2. Open **GParted** from the desktop
+3. Select the target disk, then select the **encrypted partition**
+4. Click its **gear (key) icon** and enter the passphrase
+5. The passphrase is **the Omarchy login password from the original machine** —
+   the user whose image this is, not a separate disk or encryption password
+6. Once unlocked, resize it down to fit the destination disk
+7. Apply, then return to Rescuezilla and start the restore
+
+The gear icon is easy to miss because it sits on the partition row rather than
+in a menu. If GParted will not let you resize a partition, the container is
+still locked — this is almost always why, and almost never a fault with the
+disk.
+
+### Shrink the container, not necessarily the filesystem
+
+`[INFERRED]` — it should be enough to shrink the **LUKS container** and leave
+the btrfs filesystem inside it at its current size. btrfs will simply stop using
+the tail of the partition, and growing back later is easier than shrinking
+btrfs offline. Shrinking btrfs itself is possible but is a more delicate
+operation than shrinking the outer container, and is not necessary just to make
+an image fit.
+
+Confirm what GParted actually resized before leaving — the partition row should
+show a smaller device size after the operation completes.
 
 ---
 
@@ -189,6 +247,8 @@ booting that laptop and running Rescuezilla again.
 | "MISMATCH" with identical hashes | Unsorted diff over parallel output |
 | Verification 12× slower than expected | `-P N` contending for one USB bus |
 | Blank completion screen that won't close | Modal dialog awaiting Close |
+| Rescuezilla refuses to restore | Image partition larger than the destination disk |
+| GParted won't resize the root partition | LUKS container still locked — use its gear icon |
 
 **Rule that would have prevented most of these:** never put a timeout on a
 command the user must not interrupt. Background it with `nohup` and a log.

@@ -48,6 +48,8 @@ to traps that aren't documented anywhere:
 | `xargs -P 4` over one USB bus | 30-minute job takes 6 hours |
 | Interrupting a copy-and-delete | Leaves duplicate files |
 | Cheap UAS bridges abort SMART self-tests | Test can't be run *or* observed |
+| Image larger than the target disk | Rescuezilla refuses to restore until the partition is shrunk |
+| Omarchy root is LUKS-encrypted | GParted cannot resize it until unlocked with the original login password |
 
 Each is documented with the evidence that identified it.
 
