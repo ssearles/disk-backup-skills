@@ -1,17 +1,13 @@
 # Disk & Backup Skills for AI Coding Agents
 
-Three [agent skills](https://github.com/anthropics/skills) covering external-disk
-diagnostics, a Rescuezilla backup workflow, and the identity cleanup a restored
-image needs — all written on Omarchy (Arch/Hyprland) from real sessions.
+Two [agent skills](https://github.com/anthropics/skills) covering external-disk
+diagnostics and a Rescuezilla backup workflow, written on Omarchy (Arch/Hyprland)
+from a real troubleshooting session.
 
-The first two came out of fixing a genuine problem: a 2 TB backup disk that
-mounted read-only at every boot after a power cut, losing one backup
-directory. The disk turned out to be perfectly healthy — the filesystem
-format was the problem.
-
-The third came from restoring an image to a laptop and finding it was still
-carrying the source machine's hostname, machine-id, and eight days of its
-logs.
+They came out of fixing a genuine problem: a 2 TB backup disk that mounted
+read-only at every boot after a power cut, losing one backup directory. The
+disk turned out to be perfectly healthy — the filesystem format was the
+problem.
 
 ## Skills
 
@@ -38,21 +34,6 @@ Running multi-machine disk-image backups.
 - Restoring an image
 - Troubleshooting backup-target failures
 
-### `cloned-machine-identity`
-
-The cleanup a machine needs after being restored from a disk image.
-
-- Telling a **clone** apart from the **source** machine and from a **fresh
-  install** — only the first needs fixing, and the source is the one that looks
-  most affected
-- Detecting a clone from a stale hostname and inherited journal
-- Regenerating a duplicate machine-id
-- Fixing a hostname that names the wrong laptop
-- Clearing logs carried over from the source machine
-- SSH host key checks — when there is nothing to regenerate
-- Rolling the fix across a fleet and proving the IDs are distinct, with a
-  read-only survey script that classifies every machine first
-
 ## Why these exist
 
 The session that produced these cost roughly twelve hours, and most of it went
@@ -67,7 +48,6 @@ to traps that aren't documented anywhere:
 | `xargs -P 4` over one USB bus | 30-minute job takes 6 hours |
 | Interrupting a copy-and-delete | Leaves duplicate files |
 | Cheap UAS bridges abort SMART self-tests | Test can't be run *or* observed |
-| A restored image carries the source machine's identity | Duplicate machine-id, wrong hostname, another laptop's logs |
 
 Each is documented with the evidence that identified it.
 
@@ -102,6 +82,13 @@ Linux with `smartmontools`, `util-linux` (`badblocks`), `exfatprogs`,
 
 Verified on Omarchy with kernel 6.x and smartmontools 7.5, with 2.5" 5400 rpm
 drives behind JMicron USB-SATA bridges.
+
+## Related
+
+Restoring an image leaves the machine carrying the source machine's
+machine-id, hostname, and journal. That is a different problem from imaging
+one, so it lives in its own repo:
+[`cloned-machine-identity`](https://github.com/ssearles/cloned-machine-identity).
 
 ## Licence
 
